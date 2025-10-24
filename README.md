@@ -59,35 +59,38 @@ Core business logic (domain) is isolated from runtime concerns (consensus, persi
 
 ```mermaid
 flowchart TD
-  subgraph Entrypoints (Primary Adapters)
-    CLI([CLI Simulator])
-  end
+    subgraph Entrypoints
+        CLI[CLI Simulator]
+    end
 
-  subgraph Service Layer (Application)
-    SVC[Use Cases / Services]
-    UOW[Unit of Work]
-    BUS[Message Bus (optional)]
-  end
+    subgraph ServiceLayer[Service Layer - Application]
+        SVC[Use Cases / Services]
+        UOW[Unit of Work]
+        BUS[Message Bus]
+    end
 
-  subgraph Domain (Core)
-    ENT[Entities & Value Objects]
-    RULES[Validation & Domain Services]
-  end
+    subgraph DomainLayer[Domain - Core]
+        ENT[Entities & Value Objects]
+        RULES[Validation & Domain Services]
+    end
 
-  subgraph Adapters (Secondary)
-    PERS[(In-Memory Ledger Repository)]
-    POW[[PoW Adapter]]
-    POS[[Mock PoS Adapter]]
-  end
+    subgraph Adapters
+        PERS[In-Memory Ledger Repository]
+        POW[PoW Adapter]
+        POS[Mock PoS Adapter]
+    end
 
-  CLI --> SVC
-  SVC <---> UOW
-  SVC <---> BUS
-  SVC --> ENT
-  ENT <---> RULES
-  SVC --> PERS
-  SVC --> POW
-  SVC --> POS
+    CLI --> SVC
+    SVC --> UOW
+    SVC --> BUS
+    SVC --> ENT
+    ENT --> RULES
+    SVC --> PERS
+    SVC --> POW
+    SVC --> POS
+    
+    SVC <--> BUS
+    ENT <--> RULES
 ```
 
 ### Folder Structure
