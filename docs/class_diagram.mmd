@@ -1,0 +1,222 @@
+classDiagram
+    namespace Domain Model {
+        class Wallet {
+            -String private_key
+            -String public_key
+            -Address address
+            +generate_keypair() void
+            +sign(data: bytes) bytes
+            +verify_signature(data: bytes, signature: bytes) bool
+            +create_transaction(outputs: List~TxOut~, inputs: List~TxIn~) Transaction
+        }
+
+        class Address {
+            -String hash
+            +from_public_key(public_key) Address
+            +__eq__(other) bool
+            +__hash__() int
+        }
+
+        class UTXO {
+            -String tx_id
+            -int output_index
+            -float amount
+            -Address owner_address
+            -String lock_script
+            +is_spendable_by(address: Address) bool
+        }
+
+        class Transaction {
+            -String tx_id
+            -List~TxIn~ inputs
+            -List~TxOut~ outputs
+            -Dict~str, bytes~ signatures
+            +calculate_hash() str
+            +verify() bool
+            +add_signature(input_index: int, signature: bytes) void
+        }
+
+        class TxIn {
+            -String prev_tx_id
+            -int output_index
+            -bytes signature_script
+            +reference_utxo() UTXO
+        }
+
+        class TxOut {
+            -float amount
+            -Address address
+            -String lock_script
+        }
+
+        class BlockHeader {
+            -int version
+            -String prev_hash
+            -String merkle_root
+            -int timestamp
+            -int nonce
+            -int difficulty
+            -String validator_id
+            +calculate_hash() str
+        }
+
+        class Block {
+            -BlockHeader header
+            -List~Transaction~ transactions
+            +calculate_merkle_root() str
+            +verify() bool
+            +add_transaction(tx: Transaction) void
+        }
+
+        class Chain {
+            -List~Block~ blocks
+            -Dict~str, UTXO~ utxo_set
+            -int difficulty
+            +add_block(block: Block) bool
+            +get_balance(address: Address) float
+            +find_utxos(address: Address) List~UTXO~
+            +verify_transaction(tx: Transaction) bool
+            +get_best_block() Block
+        }
+    }
+
+    namespace Service Layer {
+        class WalletService {
+            +create_wallet() Wallet
+            +get_balance(address: Address) float
+        }
+
+        class TransactionService {
+            +create_transaction(wallet: Wallet, outputs: List~TxOut~) Transaction
+            +sign_transaction(wallet: Wallet, tx: Transaction) void
+            +verify_transaction(tx: Transaction) bool
+        }
+
+        class MiningService {
+            +mine_block(transactions: List~Transaction~, validator: str) Block
+            +validate_block(block: Block) bool
+        }
+
+        class StakingService {
+            +stake_block(transactions: List~Transaction~, validator: str) Block
+            +validate_stake(block: Block) bool
+        }
+
+        class UnitOfWork {
+            <<interface>>
+            +__enter__()
+            +__exit__()
+            +commit()
+            +rollback()
+        }
+
+        class InMemoryUnitOfWork {
+            -LedgerRepository ledger_repository
+            +commit()
+            +rollback()
+        }
+    }
+
+    namespace Adapters {
+        class LedgerRepository {
+            <<interface>>
+            +get_block(height: int) Block
+            +get_latest_block() Block
+            +add_block(block: Block) void
+            +get_utxo(tx_id: str, index: int) UTXO
+            +add_utxo(utxo: UTXO) void
+            +remove_utxo(utxo: UTXO) void
+        }
+
+        class InMemoryLedgerRepository {
+            -List~Block~ blocks
+            -Dict~str, UTXO~ utxo_set
+            +get_block(height: int) Block
+            +get_latest_block() Block
+            +add_block(block: Block) void
+        }
+
+        class ConsensusProtocol {
+            <<interface>>
+            +validate_block(block: Block) bool
+            +mine_block(transactions: List~Transaction~) Block
+        }
+
+        class ProofOfWorkAdapter {
+            -int difficulty
+            +validate_block(block: Block) bool
+            +mine_block(transactions: List~Transaction~) Block
+        }
+
+        class MockProofOfStakeAdapter {
+            -List~Address~ validators
+            +validate_block(block: Block) bool
+            +stake_block(transactions: List~Transaction~, validator: str) Block
+        }
+    }
+
+    namespace Exceptions {
+        class DomainException {
+            +String message
+        }
+
+        class InvalidSignatureException {
+            +String message
+        }
+
+        class InsufficientFundsException {
+            +String message
+            +Address address
+            +float required
+            +float available
+        }
+
+        class DoubleSpendException {
+            +String message
+            +UTXO utxo
+        }
+
+        class InvalidTransactionException {
+            +String message
+            +Transaction transaction
+        }
+    }
+
+    %% Relationships
+    Wallet "1" *-- "1" Address
+    Transaction "1" *-- "1..*" TxIn
+    Transaction "1" *-- "1..*" TxOut
+    TxIn "1" --> "1" UTXO
+    TxOut "1" --> "1" Address
+    UTXO "1" --> "1" Address
+
+    Block "1" *-- "1" BlockHeader
+    Block "1" *-- "0..*" Transaction
+    Chain "1" *-- "1..*" Block
+    Chain "1" *-- "0..*" UTXO
+
+    WalletService ..> Wallet
+    TransactionService ..> Transaction
+    TransactionService ..> Wallet
+    MiningService ..> Block
+    StakingService ..> Block
+
+    InMemoryUnitOfWork ..|> UnitOfWork
+    InMemoryUnitOfWork --> LedgerRepository
+
+    InMemoryLedgerRepository ..|> LedgerRepository
+    ProofOfWorkAdapter ..|> ConsensusProtocol
+    MockProofOfStakeAdapter ..|> ConsensusProtocol
+
+    MiningService --> ProofOfWorkAdapter
+    StakingService --> MockProofOfStakeAdapter
+
+    InvalidSignatureException --|> DomainException
+    InsufficientFundsException --|> DomainException
+    DoubleSpendException --|> DomainException
+    InvalidTransactionException --|> DomainException
+
+    TransactionService ..> InvalidSignatureException
+    TransactionService ..> InsufficientFundsException
+    TransactionService ..> DoubleSpendException
+    Chain ..> InvalidTransactionException

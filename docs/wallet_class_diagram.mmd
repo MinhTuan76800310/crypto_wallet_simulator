@@ -1,0 +1,113 @@
+classDiagram
+    namespace Domain Model {
+        class Wallet {
+            -String private_key
+            -String public_key
+            -Address address
+            +generate_keypair() void
+            +sign(data: bytes) bytes
+            +verify_signature(data: bytes, signature: bytes) bool
+            +create_transaction(outputs: List~TxOut~, inputs: List~TxIn~) Transaction
+        }
+
+        class Address {
+            -String hash
+            +from_public_key(public_key) Address
+            +__eq__(other) bool
+            +__hash__() int
+        }
+
+        class UTXO {
+            -String tx_id
+            -int output_index
+            -float amount
+            -Address owner_address
+            -String lock_script
+            +is_spendable_by(address: Address) bool
+        }
+
+        class Transaction {
+            -String tx_id
+            -List~TxIn~ inputs
+            -List~TxOut~ outputs
+            -Dict~str, bytes~ signatures
+            +calculate_hash() str
+            +verify() bool
+            +add_signature(input_index: int, signature: bytes) void
+        }
+
+        class TxIn {
+            -String prev_tx_id
+            -int output_index
+            -bytes signature_script
+            +reference_utxo() UTXO
+        }
+
+        class TxOut {
+            -float amount
+            -Address address
+            -String lock_script
+        }
+    }
+
+    namespace Service Layer {
+        class WalletService {
+            +create_wallet() Wallet
+            +get_balance(address: Address) float
+        }
+
+        class TransactionService {
+            +create_transaction(wallet: Wallet, outputs: List~TxOut~) Transaction
+            +sign_transaction(wallet: Wallet, tx: Transaction) void
+            +verify_transaction(tx: Transaction) bool
+        }
+    }
+
+    namespace Exceptions {
+        class InvalidSignatureException {
+            +String message
+        }
+
+        class InsufficientFundsException {
+            +String message
+            +Address address
+            +float required
+            +float available
+        }
+
+        class DoubleSpendException {
+            +String message
+            +UTXO utxo
+        }
+    }
+
+    %% Wallet Relationships
+    Wallet "1" *-- "1" Address
+    Wallet ..> Transaction : creates
+    Wallet ..> TxIn : references
+    Wallet ..> TxOut : creates
+    
+    %% Core Transaction Relationships
+    Transaction "1" *-- "1..*" TxIn
+    Transaction "1" *-- "1..*" TxOut
+    TxIn "1" --> "1" UTXO : spends
+    TxOut "1" --> "1" Address : locks to
+    UTXO "1" --> "1" Address : owned by
+
+    %% Service Relationships
+    WalletService ..> Wallet : manages
+    WalletService ..> Address : queries
+    TransactionService ..> Wallet : uses
+    TransactionService ..> Transaction : processes
+    TransactionService ..> UTXO : references
+
+    %% Exception Relationships
+    TransactionService ..> InvalidSignatureException
+    TransactionService ..> InsufficientFundsException
+    TransactionService ..> DoubleSpendException
+
+    %% UTXO Ownership
+    UTXO ..> Address : belongs to
+
+    %% Transaction Signing
+    Wallet ..> Transaction : signs

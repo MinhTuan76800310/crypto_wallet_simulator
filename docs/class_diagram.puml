@@ -1,0 +1,231 @@
+@startuml
+!theme plain
+
+package "Domain Model" {
+
+class Wallet {
+  - private_key: str
+  - public_key: str
+  - address: Address
+  + generate_keypair(): void
+  + sign(data: bytes): bytes
+  + verify_signature(data: bytes, signature: bytes): bool
+  + create_transaction(outputs: List[TxOut], inputs: List[TxIn]): Transaction
+}
+
+class Address {
+  - hash: str
+  + from_public_key(public_key): Address
+  + __eq__(other): bool
+  + __hash__(): int
+}
+
+class UTXO {
+  - tx_id: str
+  - output_index: int
+  - amount: float
+  - owner_address: Address
+  - lock_script: str
+  + is_spendable_by(address: Address): bool
+}
+
+class Transaction {
+  - tx_id: str
+  - inputs: List[TxIn]
+  - outputs: List[TxOut>
+  - signatures: Dict[str, bytes]
+  + calculate_hash(): str
+  + verify(): bool
+  + add_signature(input_index: int, signature: bytes): void
+}
+
+class TxIn {
+  - prev_tx_id: str
+  - output_index: int
+  - signature_script: bytes
+  + reference_utxo(): UTXO
+}
+
+class TxOut {
+  - amount: float
+  - address: Address
+  - lock_script: str
+}
+
+class BlockHeader {
+  - version: int
+  - prev_hash: str
+  - merkle_root: str
+  - timestamp: int
+  - nonce: int
+  - difficulty: int
+  - validator_id: str
+  + calculate_hash(): str
+}
+
+class Block {
+  - header: BlockHeader
+  - transactions: List[Transaction]
+  + calculate_merkle_root(): str
+  + verify(): bool
+  + add_transaction(tx: Transaction): void
+}
+
+class Chain {
+  - blocks: List[Block]
+  - utxo_set: Dict[str, UTXO>
+  - difficulty: int
+  + add_block(block: Block): bool
+  + get_balance(address: Address): float
+  + find_utxos(address: Address): List[UTXO]
+  + verify_transaction(tx: Transaction): bool
+  + get_best_block(): Block
+}
+
+}
+
+package "Service Layer" {
+
+class WalletService {
+  + create_wallet(): Wallet
+  + get_balance(address: Address): float
+}
+
+class TransactionService {
+  + create_transaction(wallet: Wallet, outputs: List[TxOut>): Transaction
+  + sign_transaction(wallet: Wallet, tx: Transaction): void
+  + verify_transaction(tx: Transaction): bool
+}
+
+class MiningService {
+  + mine_block(transactions: List[Transaction], validator: str): Block
+  + validate_block(block: Block): bool
+}
+
+class StakingService {
+  + stake_block(transactions: List[Transaction>, validator: str): Block
+  + validate_stake(block: Block): bool
+}
+
+interface UnitOfWork {
+  + __enter__()
+  + __exit__()
+  + commit()
+  + rollback()
+}
+
+class InMemoryUnitOfWork {
+  - ledger_repository: LedgerRepository
+  + commit()
+  + rollback()
+}
+
+}
+
+package "Adapters" {
+
+interface LedgerRepository {
+  + get_block(height: int): Block
+  + get_latest_block(): Block
+  + add_block(block: Block): void
+  + get_utxo(tx_id: str, index: int): UTXO
+  + add_utxo(utxo: UTXO): void
+  + remove_utxo(utxo: UTXO): void
+}
+
+class InMemoryLedgerRepository {
+  - blocks: List[Block]
+  - utxo_set: Dict[str, UTXO>
+  + get_block(height: int): Block
+  + get_latest_block(): Block
+  + add_block(block: Block): void
+}
+
+interface ConsensusProtocol {
+  + validate_block(block: Block): bool
+  + mine_block(transactions: List[Transaction]): Block
+}
+
+class ProofOfWorkAdapter {
+  - difficulty: int
+  + validate_block(block: Block): bool
+  + mine_block(transactions: List[Transaction]): Block
+}
+
+class MockProofOfStakeAdapter {
+  - validators: List[Address]
+  + validate_block(block: Block): bool
+  + stake_block(transactions: List[Transaction], validator: str): Block
+}
+
+}
+
+package "Exceptions" {
+
+class DomainException {
+  + message: str
+}
+
+class InvalidSignatureException {
+  + message: str
+}
+
+class InsufficientFundsException {
+  + message: str
+  + address: Address
+  + required: float
+  + available: float
+}
+
+class DoubleSpendException {
+  + message: str
+  + utxo: UTXO
+}
+
+class InvalidTransactionException {
+  + message: str
+  + transaction: Transaction
+}
+
+}
+
+' Relationships
+Wallet "1" *-- "1" Address
+Transaction "1" *-- "1..*" TxIn
+Transaction "1" *-- "1..*" TxOut
+TxIn "1" --> "1" UTXO
+TxOut "1" --> "1" Address
+UTXO "1" --> "1" Address
+
+Block "1" *-- "1" BlockHeader
+Block "1" *-- "0..*" Transaction
+Chain "1" *-- "1..*" Block
+Chain "1" *-- "0..*" UTXO
+
+WalletService ..> Wallet
+TransactionService ..> Transaction
+TransactionService ..> Wallet
+MiningService ..> Block
+StakingService ..> Block
+
+InMemoryUnitOfWork ..|> UnitOfWork
+InMemoryUnitOfWork --> LedgerRepository
+
+InMemoryLedgerRepository ..|> LedgerRepository
+ProofOfWorkAdapter ..|> ConsensusProtocol
+MockProofOfStakeAdapter ..|> ConsensusProtocol
+
+MiningService --> ProofOfWorkAdapter
+StakingService --> MockProofOfStakeAdapter
+
+InvalidSignatureException --|> DomainException
+InsufficientFundsException --|> DomainException
+DoubleSpendException --|> DomainException
+InvalidTransactionException --|> DomainException
+
+TransactionService ..> InvalidSignatureException
+TransactionService ..> InsufficientFundsException
+TransactionService ..> DoubleSpendException
+Chain ..> InvalidTransactionException
+
+@enduml
