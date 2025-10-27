@@ -1,0 +1,5 @@
+- Hash: sha2 (SHA-256), k256 or secp256k1 (ECDSA secp256k1)
+- Random: rand (số ngẫu nhiên)
+- Json Hanble: serde
+- Storage: rocksdb or sled.
+- CLI: structopt or clap
