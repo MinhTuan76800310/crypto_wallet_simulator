@@ -1,0 +1,8 @@
+[package]
+name = "wallet-cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wallet-core = { path = "../wallet-core" }
+clap = { version = "4", features = ["derive"] }

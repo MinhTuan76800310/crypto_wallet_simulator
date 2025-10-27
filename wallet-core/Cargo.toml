@@ -1,0 +1,10 @@
+[package]
+name = "wallet-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "wallet_core"
+path = "src/lib.rs"
+
+[dependencies]
