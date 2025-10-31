@@ -1,0 +1,12 @@
+[package]
+name = "services"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain_model = { path = "../domain_model" }
+adapters = { path = "../adapters" }
+error = { path = "../error" }
+
+tokio = { workspace = true }
+async-trait = { workspace = true }

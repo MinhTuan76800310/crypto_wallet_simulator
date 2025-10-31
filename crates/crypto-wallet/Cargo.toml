@@ -1,0 +1,12 @@
+[package]
+name = "crypto-wallet"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain_model = { path = "../domain_model" }
+services = { path = "../services" }
+adapters = { path = "../adapters" }
+error = { path = "../error" }
+
+tokio = { workspace = true }

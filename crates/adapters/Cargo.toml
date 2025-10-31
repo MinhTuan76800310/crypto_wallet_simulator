@@ -1,0 +1,14 @@
+[package]
+name = "adapters"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+domain_model = { path = "../domain_model" }
+error = { path = "../error" }
+
+tokio = { workspace = true }
+async-trait = { workspace = true }
+parking_lot = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }

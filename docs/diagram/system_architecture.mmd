@@ -1,0 +1,41 @@
+graph TD
+    subgraph "External Layer"
+        CRYPTO_WALLET[crypto-wallet<br/>Composition Root]
+    end
+    
+    subgraph "Application Layer"
+        SERVICES[services<br/>Use Cases]
+    end
+    
+    subgraph "Infrastructure Layer"
+        ADAPTERS[adapters<br/>Concrete Implementations]
+    end
+    
+    subgraph "Domain Layer"
+        DOMAIN_MODEL[domain_model<br/>Business Rules]
+    end
+    
+    subgraph "Shared Utilities"
+        ERROR[error<br/>Error Handling]
+    end
+    
+    %% Architecture Flow (Dependency Rule)
+    CRYPTO_WALLET --> SERVICES
+    SERVICES --> ADAPTERS
+    SERVICES --> DOMAIN_MODEL
+    ADAPTERS --> DOMAIN_MODEL
+    SERVICES --> ERROR
+    ADAPTERS --> ERROR
+    ERROR --> DOMAIN_MODEL
+    
+    %% External Dependencies
+    DOMAIN_MODEL -.->|serde, sha2, bincode| EXT_DEPS[External Libs]
+    SERVICES -.->|tokio| EXT_DEPS
+    ADAPTERS -.->|tokio| EXT_DEPS
+    ERROR -.->|thiserror| EXT_DEPS
+    
+    style CRYPTO_WALLET fill:#ffebee
+    style SERVICES fill:#e3f2fd
+    style ADAPTERS fill:#fff3e0
+    style DOMAIN_MODEL fill:#e8f5e8
+    style ERROR fill:#fce4ec
