@@ -8,3 +8,4 @@ name = "wallet_core"
 path = "src/lib.rs"
 
 [dependencies]
+thiserror = "2.0.17"

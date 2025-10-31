@@ -1,0 +1,122 @@
+graph TB
+    %% ===== MAIN APPLICATION =====
+    subgraph "📦 Main Application"
+        MAIN[main.rs]
+    end
+
+    MAIN --> SERVICES
+    MAIN --> DOMAIN
+
+    %% ===== DOMAIN LAYER (Pure Business Logic) =====
+    subgraph "🏗️ Domain Layer - Core Business Types"
+        DOMAIN[domain_model crate]
+        
+        subgraph DOMAIN_ENTITIES[Entities]
+            WALLET[Wallet struct]
+            ADDRESS[Address struct]
+            TRANSACTION[Transaction struct]
+            BLOCK[Block struct]
+            CHAIN[Chain struct]
+            UTXO[UTXO struct]
+        end
+
+        subgraph DOMAIN_ERRORS[Error Types]
+            DOMAIN_ERROR[DomainError enum]
+        end
+    end
+
+    %% ===== SERVICE LAYER (Use Cases) =====
+    subgraph "🎯 Service Layer - Use Cases"
+        SERVICES[services crate]
+        
+        subgraph SERVICE_TRAITS[Service Traits]
+            WALLET_SERVICE_TRAIT[WalletService trait]
+            TX_SERVICE_TRAIT[TransactionService trait]
+            CONSENSUS_TRAIT[ConsensusService trait]
+            UOW_TRAIT[UnitOfWork trait]
+        end
+
+        subgraph SERVICE_IMPLS[Service Implementations]
+            WALLET_SERVICE_IMPL[WalletServiceImpl]
+            TX_SERVICE_IMPL[TransactionServiceImpl]
+        end
+    end
+
+    %% ===== ADAPTERS LAYER (Infrastructure) =====
+    subgraph "🔌 Adapters Layer - Infrastructure"
+        ADAPTERS[adapters crate]
+        
+        subgraph REPO_TRAITS[Repository Traits]
+            LEDGER_REPO_TRAIT[LedgerRepository trait]
+            CONSENSUS_PROTOCOL_TRAIT[ConsensusProtocol trait]
+        end
+
+        subgraph REPO_IMPLS[Repository Implementations]
+            INMEMORY_REPO[InMemoryLedgerRepository]
+            UOW_IMPL[InMemoryUnitOfWork]
+            POW_ADAPTER[ProofOfWorkAdapter]
+            POS_ADAPTER[MockProofOfStakeAdapter]
+        end
+    end
+
+    %% ===== ERROR HANDLING =====
+    subgraph "🚨 Error Handling"
+        ERRORS[error crate]
+        DOMAIN_ERROR
+        SERVICE_ERROR[ServiceError enum]
+        REPO_ERROR[RepositoryError enum]
+    end
+
+    %% ===== DEPENDENCIES =====
+    subgraph "📚 External Dependencies"
+        DEPS[External Crates]
+        SERDE[serde]
+        THISERROR[thiserror]
+        SHA2[sha2]
+        TOKIO[tokio]
+    end
+
+    %% ===== DATA FLOW =====
+    %% Domain relationships
+    WALLET --> ADDRESS
+    TRANSACTION --> UTXO
+    BLOCK --> TRANSACTION
+    CHAIN --> BLOCK
+    CHAIN --> UTXO
+
+    %% Service implementations use Domain types
+    WALLET_SERVICE_IMPL --> WALLET
+    WALLET_SERVICE_IMPL --> CHAIN
+    TX_SERVICE_IMPL --> TRANSACTION
+    TX_SERVICE_IMPL --> WALLET
+    TX_SERVICE_IMPL --> CHAIN
+
+    %% Service traits define interfaces
+    WALLET_SERVICE_IMPL ..|> WALLET_SERVICE_TRAIT
+    TX_SERVICE_IMPL ..|> TX_SERVICE_TRAIT
+    UOW_IMPL ..|> UOW_TRAIT
+
+    %% Repository implementations
+    INMEMORY_REPO ..|> LEDGER_REPO_TRAIT
+    POW_ADAPTER ..|> CONSENSUS_PROTOCOL_TRAIT
+    POS_ADAPTER ..|> CONSENSUS_PROTOCOL_TRAIT
+
+    %% Error hierarchy
+    DOMAIN_ERROR --> SERVICE_ERROR
+    REPO_ERROR --> SERVICE_ERROR
+
+    %% External dependencies
+    DOMAIN --> SERDE
+    DOMAIN --> SHA2
+    ERRORS --> THISERROR
+    SERVICES --> TOKIO
+
+    %% Service -> Adapter dependencies
+    WALLET_SERVICE_IMPL --> INMEMORY_REPO
+    TX_SERVICE_IMPL --> INMEMORY_REPO
+    UOW_IMPL --> INMEMORY_REPO
+
+    style DOMAIN fill:#e1f5fe
+    style SERVICES fill:#f3e5f5
+    style ADAPTERS fill:#e8f5e8
+    style ERRORS fill:#ffebee

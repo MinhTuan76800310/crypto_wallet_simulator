@@ -2,21 +2,18 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum WalletError {
-    #[error("Invalid Derivation Path: {0}")]
-    InvalidDerivationPath(String),
-
-    #[error("Crypto Error: {0}")]
-    CryptoError(String),
-
-    #[error("I/O Error: {0}")]
+    #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Serialization Error: {0}")]
-    Serialization(#[from] serde_json::Error),
+    #[error("Network request failed: {0}")]
+    Network(#[from] reqwest::Error),
 
-    #[error("Mnemonic Error: {0}")]
-    Mnemonic(#[from] bip39::Error),
+    #[error("Failed to parse derivation path: {0}")]
+    DerivationPath(String),
 
-    #[error("Network Error: {0}")]
-    Network(String),
+    #[error("Insufficient funds: required {required}, but only have {available}")]
+    InsufficientFunds {
+        required: u64,
+        available: u64,
+    },
 }
