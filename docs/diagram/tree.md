@@ -1,3 +1,6 @@
+## 🧩 Project Structure
+
+```text
 📦 crypto-wallet-simulator/
 ├── 📄 Cargo.toml                              # Workspace configuration
 │
